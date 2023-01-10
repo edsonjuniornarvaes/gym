@@ -10,8 +10,10 @@ import {
   useToast,
 } from "native-base";
 import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import * as yup from "yup";
 
 import { useAuth } from "@hooks/useAuth";
 
@@ -26,9 +28,23 @@ type FormDataProps = {
   name: string;
   email: string;
   password: string;
-  oldPassword: string;
-  newPassword: string;
+  old_password: string;
+  confirm_password: string;
 };
+
+const profileSchema = yup.object({
+  name: yup.string().required("Informe o nome"),
+  password: yup
+    .string()
+    .min(6, "A senha deve ter pelo menos 6 dígitos.")
+    .nullable()
+    .transform((value) => (!!value ? value : null)),
+  confirm_password: yup
+    .string()
+    .nullable()
+    .transform((value) => (!!value ? value : null))
+    .oneOf([yup.ref("password"), null], "A confirmação de senha não confere."),
+});
 
 export function Profile() {
   const [photoIsLoading, setPhotoIsLoading] = useState(false);
@@ -38,11 +54,16 @@ export function Profile() {
 
   const toast = useToast();
   const { user } = useAuth();
-  const { control } = useForm<FormDataProps>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormDataProps>({
     defaultValues: {
       name: user.name,
       email: user.email,
     },
+    resolver: yupResolver(profileSchema),
   });
 
   async function handleUserPhotoSelected() {
@@ -78,6 +99,10 @@ export function Profile() {
     } finally {
       setPhotoIsLoading(false);
     }
+  }
+
+  async function handleProfileUpdate(data: FormDataProps) {
+    console.log(data);
   }
 
   return (
@@ -123,6 +148,7 @@ export function Profile() {
                 placeholder="Nome"
                 onChangeText={onChange}
                 value={value}
+                errorMessage={errors.name?.message}
               />
             )}
           />
@@ -152,17 +178,52 @@ export function Profile() {
             Alterar senha
           </Heading>
 
-          <Input bg="gray.600" placeholder="Senha antiga" secureTextEntry />
-
-          <Input bg="gray.600" placeholder="Nova senha" secureTextEntry />
-
-          <Input
-            bg="gray.600"
-            placeholder="Confirme a nova senha"
-            secureTextEntry
+          <Controller
+            control={control}
+            name="old_password"
+            render={({ field: { onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Senha antiga"
+                secureTextEntry
+                onChangeText={onChange}
+              />
+            )}
           />
 
-          <Button title="Atualizar" mt={4} />
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Nova senha"
+                secureTextEntry
+                onChangeText={onChange}
+                errorMessage={errors.password?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="confirm_password"
+            render={({ field: { onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Confirme a nova senha"
+                secureTextEntry
+                onChangeText={onChange}
+                errorMessage={errors.confirm_password?.message}
+              />
+            )}
+          />
+
+          <Button
+            title="Atualizar"
+            mt={4}
+            onPress={handleSubmit(handleProfileUpdate)}
+          />
         </Center>
       </ScrollView>
     </VStack>

@@ -15,10 +15,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import * as yup from "yup";
 
-import { useAuth } from "@hooks/useAuth";
+import defaulUserPhotoImg from "@assets/userPhotoDefault.png";
 
 import { api } from "@services/api";
 import { AppError } from "@utils/AppError";
+
+import { useAuth } from "@hooks/useAuth";
 
 import { ScreenHeader } from "@components/ScreenHeader";
 import { UserPhoto } from "@components/UserPhoto";
@@ -60,9 +62,6 @@ const profileSchema = yup.object({
 export function Profile() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [photoIsLoading, setPhotoIsLoading] = useState(false);
-  const [userPhoto, setUserPhoto] = useState(
-    "https://github.com/edsonjuniornarvaes.png"
-  );
 
   const toast = useToast();
   const { user, updateUserProfile } = useAuth();
@@ -96,7 +95,7 @@ export function Profile() {
       if (photoSelected.uri) {
         const photoInfo = await FileSystem.getInfoAsync(photoSelected.uri);
 
-        if (photoInfo.size && photoInfo.size / 1024 / 1024 > 2) {
+        if (photoInfo.size && photoInfo.size / 1024 / 1024 > 5) {
           return toast.show({
             title: "Essa imagem é muito grande. Escolha uma de até 5MB.",
             placement: "top",
@@ -193,7 +192,11 @@ export function Profile() {
             />
           ) : (
             <UserPhoto
-              source={{ uri: userPhoto }}
+              source={
+                user.avatar
+                  ? { uri: `${api.defaults.baseURL}/avatar/${user.avatar}` }
+                  : defaulUserPhotoImg
+              }
               alt="Foto do usuário"
               size={PHOTO_SIZE}
             />
